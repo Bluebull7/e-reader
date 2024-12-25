@@ -48,7 +48,7 @@ class PDFReader(tk.Tk):
 
         # Bindings for Zoom
         self.bind("<Control-minus>", self.zoom_out)
-        self.bind("<Control-=>", self.zoom_in)
+        self.bind("<Control-plus>", self.zoom_in)
 
         # Open PDF on startup if provided; otherwise prompt for file
         if pdf_path:
