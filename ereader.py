@@ -47,8 +47,10 @@ class PDFReader(tk.Tk):
         self.fullscreen_btn.pack(side=tk.LEFT, padx=5, pady=5)
 
         # Bindings for Zoom
-        self.bind("<Control-minus>", self.zoom_out)
-        self.bind("<Control-plus>", self.zoom_in)
+        #self.bind("<Control-minus>", self.zoom_out)
+        #self.bind("<Control-plus>", self.zoom_in)
+        self.bind("<Control-KeyPress-minus>", self.zoom_out)
+        self.bind("<Control-KeyPress-equal>", self.zoom_in)
 
         # Open PDF on startup if provided; otherwise prompt for file
         if pdf_path:
