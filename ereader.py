@@ -10,18 +10,19 @@ class PDFReader(tk.Tk):
 
         # Application title and geometry
         self.title("Distraction-Free PDF Reader")
-        self.geometry("800x600")  # Feel free to change the default size
+        self.geometry("800x600")
 
         # State variables
         self.pdf_doc = None
         self.current_page_index = 0
         self.total_pages = 0
+        self.zoom_level = 100  # Default zoom level (in percentage)
 
         # Canvas to display PDF pages
         self.canvas = tk.Canvas(self, background="black")
         self.canvas.pack(fill=tk.BOTH, expand=True)
 
-        # Controls Frame (only visible if you hover or move the mouse, if you want)
+        # Controls Frame
         self.controls_frame = tk.Frame(self, bg="gray")
         self.controls_frame.pack(side=tk.BOTTOM, fill=tk.X)
 
@@ -45,6 +46,10 @@ class PDFReader(tk.Tk):
         self.fullscreen_btn = tk.Button(self.controls_frame, text="Fullscreen", command=self.toggle_fullscreen)
         self.fullscreen_btn.pack(side=tk.LEFT, padx=5, pady=5)
 
+        # Bindings for Zoom
+        self.bind("<Control-minus>", self.zoom_out)
+        self.bind("<Control-=>", self.zoom_in)
+
         # Open PDF on startup if provided; otherwise prompt for file
         if pdf_path:
             self.load_pdf(pdf_path)
@@ -53,9 +58,6 @@ class PDFReader(tk.Tk):
 
         # Bind ESC to exit fullscreen mode or close
         self.bind("<Escape>", self.exit_fullscreen)
-        
-        # Optional: Hide controls after some period of inactivity (for pure distraction-free)
-        # You could implement a mouse motion binding that shows/hides the controls.
 
     def open_pdf_dialog(self):
         """Prompt user to select a PDF file to open."""
@@ -66,7 +68,6 @@ class PDFReader(tk.Tk):
         if pdf_file:
             self.load_pdf(pdf_file)
         else:
-            # If user cancels, close the app or handle differently
             self.destroy()
 
     def load_pdf(self, pdf_file):
@@ -88,34 +89,31 @@ class PDFReader(tk.Tk):
             return
 
         page = self.pdf_doc[page_index]
-        pix = page.get_pixmap(dpi=100)  # Increase DPI if you need higher quality
+        # Apply zoom level (100 dpi is default, scaled by zoom level)
+        zoom_matrix = fitz.Matrix(self.zoom_level / 100, self.zoom_level / 100)
+        pix = page.get_pixmap(matrix=zoom_matrix)
         mode = "RGB" if pix.alpha == 0 else "RGBA"
 
         # Convert PyMuPDF pixmap to PIL Image
         img = Image.frombytes(mode, [pix.width, pix.height], pix.samples)
-        # Optional: You can resize the image to fit the window:
-        # img = img.resize((new_width, new_height), Image.ANTIALIAS)
 
         # Convert PIL image to a Tkinter image
         self.tk_img = ImageTk.PhotoImage(img)
-        
+
         # Clear the canvas
         self.canvas.delete("all")
 
         # Center the image on the canvas
-        self.canvas_width = self.canvas.winfo_width()
-        self.canvas_height = self.canvas.winfo_height()
-        self.image_width = img.width
-        self.image_height = img.height
-
-        x_offset = (self.canvas_width - self.image_width) // 2
-        y_offset = (self.canvas_height - self.image_height) // 2
+        canvas_width = self.canvas.winfo_width()
+        canvas_height = self.canvas.winfo_height()
+        x_offset = (canvas_width - pix.width) // 2
+        y_offset = (canvas_height - pix.height) // 2
 
         # Draw the image on the canvas
         self.canvas.create_image(x_offset, y_offset, anchor=tk.NW, image=self.tk_img)
 
         # Update window title
-        self.title(f"Distraction-Free PDF Reader - Page {page_index + 1}/{self.total_pages}")
+        self.title(f"Distraction-Free PDF Reader - Page {page_index + 1}/{self.total_pages} - Zoom: {self.zoom_level}%")
 
     def show_next_page(self):
         """Show the next page if available."""
@@ -153,9 +151,15 @@ class PDFReader(tk.Tk):
         else:
             self.destroy()
 
-    def on_resize(self, event):
-        """If you want to scale the page automatically on window resize, implement it here."""
-        pass
+    def zoom_in(self, event=None):
+        """Zoom in by increasing the zoom level."""
+        self.zoom_level = min(self.zoom_level + 10, 300)  # Cap at 300%
+        self.show_page(self.current_page_index)
+
+    def zoom_out(self, event=None):
+        """Zoom out by decreasing the zoom level."""
+        self.zoom_level = max(self.zoom_level - 10, 50)  # Cap at 50%
+        self.show_page(self.current_page_index)
 
 def main():
     import sys
